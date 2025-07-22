@@ -2,7 +2,7 @@ pipeline {
     agent {
         docker {
             image 'python:3.13.5-alpine3.22'
-            args '--link docker:dind -e DOCKER_HOST=tcp://docker:2375'
+            args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
 
@@ -21,18 +21,14 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh '''
-                    echo -e "FROM alpine\\nRUN echo Hello from Dockerfile" > Dockerfile
-                    docker build -t test-image .
-                '''
+                script {
+                    writeFile file: 'Dockerfile', text: '''
+                        FROM alpine
+                        RUN echo "Hello from Dockerfile"
+                    '''
+                    sh 'docker build -t test-image .'
+                }
             }
-        }
-    }
-
-    services {
-        docker {
-            image: 'docker:dind'
-            privileged: true
         }
     }
 }
